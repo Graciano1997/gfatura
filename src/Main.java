@@ -9,17 +9,17 @@ public class Main {
     public static void main(String[] args) throws Exception {
         HttpServer server = HttpServer.create(new InetSocketAddress(5000), 0);
 
-        System.out.println("Inicializando o server...");
+        System.out.println("Starting the server...");
 
-        server.createContext("/imprimir", exchange -> {
-            // Handle CORS preflight request
+        server.createContext("/print", exchange -> {
+
             if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) {
                 Headers headers = exchange.getResponseHeaders();
                 headers.add("Access-Control-Allow-Origin", "*");
                 headers.add("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
                 headers.add("Access-Control-Allow-Headers", "Content-Type");
 
-                exchange.sendResponseHeaders(204, -1); // No content
+                exchange.sendResponseHeaders(204, -1); 
                 return;
             }
 
@@ -37,7 +37,6 @@ public class Main {
 
                 System.out.println("Recebido JSON: " + jsonBuilder.toString());
 
-                // Aqui você pode desserializar e imprimir
                 Fatura fatura = new ObjectMapper().readValue(jsonBuilder.toString(), Fatura.class);
                 ImpressorTermico.imprimir(fatura, true);
 
@@ -49,11 +48,11 @@ public class Main {
                 os.write(responseBytes);
                 os.close();
             } else {
-                exchange.sendResponseHeaders(405, -1); // Method Not Allowed
+                exchange.sendResponseHeaders(405, -1);
             }
         });
 
         server.start();
-        System.out.println("Servidor local de impressão rodando na porta 5000");
+        System.out.println("Local print server running on 5000 port");
     }
 }

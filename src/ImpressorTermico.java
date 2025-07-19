@@ -73,6 +73,9 @@ public class ImpressorTermico {
         // Imprimir diretamente
         job.print();
     
-    }catch(Exception e){e.printStackTrace();}
+    }catch(Exception e){
+        JOptionPane.showMessageDialog(null,"There is not a connected print. \n Please ensure to connect a print.", "No printer Connected",JOptionPane.WARNING_MESSAGE);
+        // e.printStackTrace();
+        }
     }
 }

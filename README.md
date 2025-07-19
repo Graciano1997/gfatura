@@ -39,6 +39,7 @@ You can download them from: https://repo1.maven.org/maven2/com/fasterxml/jackson
 ```bash
 chmod +x build.sh
 ./build.sh
+
 cd bin
 java -jar ../gfatura.jar
 ```
@@ -51,6 +52,7 @@ Open Command Prompt:
 
 build.bat
 cd bin
+
 java -jar ..\gfatura.jar
 
 ```
@@ -60,16 +62,35 @@ java -jar ..\gfatura.jar
 Inside the Main.java, the program uses a sample JSON like this:
 
 ```bash
-
-{
-  "numero": "FAT-001",
-  "cliente": "João Silva",
-  "data": "2025-07-18",
-  "itens": [
-    {"descricao": "Produto A", "quantidade": 2, "precoUnitario": 50.0},
-    {"descricao": "Produto B", "quantidade": 1, "precoUnitario": 75.0}
-  ]
-}
+ {
+    "empresa": "Hosana",
+    "nif": "005717487M045",
+    "local": "Luanda, Cacuaco",
+    "email": "hosana@gmail.com",
+    "empresaPhone": "+244 935636086",
+    "numeroRecibo": "021/2025",
+    "dataEmissao": "19-07-2025 19:35:29",
+    "vendedor": "Maria Prata",
+    "troco": "779.28 kz",
+    "telefone": 911111111,
+    "cliente": "Henrique",
+    "desconto": "0.0 kz",
+    "total": "1220.72 kz",
+    "formaPagamento": "CASH",
+    "observacoes": "Lembre-se de seguir as orientações de uso dos medicamentos <br/>Em caso de dúvida, consulte nossa equipe..",
+    "produto": [
+      {
+        "nome": "Cesartem",
+        "qtd": 1,
+        "preco": "200.0 kz"
+      },
+      {
+        "nome": "Davimeter",
+        "qtd": 1,
+        "preco": "1000.0 kz"
+      }
+    ]
+  }
 ```
 
 🖨️ Output Example
@@ -87,7 +108,6 @@ Total Geral: 175.0
 ```
 
 📜 License
-
 This project is for educational purposes. Feel free to use and adapt it as needed.
 
 ✨ Author
