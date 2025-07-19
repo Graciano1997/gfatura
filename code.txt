@@ -1,0 +1,24 @@
+javac -cp "jackson-core-2.17.0.jar;jackson-databind-2.17.0.jar;jackson-annotations-2.17.0.jar" Gfatura.java Fatura.java Produto.java  
+
+
+java -cp ".;jackson-core-2.17.0.jar;jackson-databind-2.17.0.jar;jackson-annotations-2.17.0.jar" Gfatura.java
+
+jar -cp ".;jackson-core-2.17.0.jar;jackson-databind-2.17.0.jar;jackson-annotations-2.17.0.jar" cfe Gfatura.jar Gfatura  Gfatura.class
+
+-cp ".;jackson-core-2.17.0.jar;jackson-databind-2.17.0.jar;jackson-annotations-2.17.0.jar"
+
+$ jar cfe ImpressoraHTML.jar ImpressoraHTML ImpressoraHTML.class
+
+
+jar -cp ".;jackson-core-2.17.0.jar;jackson-databind-2.17.0.jar;jackson-annotations-2.17.0.jar" cfe Gfatura.jar Gfatura  Gfatura.class
+
+jar cfe Gfatura.jar Gfatura  -cp ".;jackson-core-2.17.0.jar;jackson-databind-2.17.0.jar;jackson-annotations-2.17.0.jar" Gfatura.class
+
+
+jar cvfm application.jar manifest.txt *.class jackson-core-2.17.0.jar jackson-databind-2.17.0.jar jackson-annotations-2.17.0.jar
+
+
+java -cp "application.jar;jackson-core-2.17.0.jar;jackson-databind-2.17.0.jar;jackson-annotations-2.17.0.jar" Gfatura
+
+
+ java -cp "application.jar;jackson-core-2.17.0.jar;jackson-databind-2.17.0.jar;jackson-annotations-2.17.0.jar" Gfatura

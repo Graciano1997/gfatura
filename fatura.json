@@ -1,0 +1,34 @@
+{
+    "empresa": "Hosana",
+    "nif": "005717487M045",
+    "local": "Luanda, Cacuaco",
+    "email": "hosana@gmail.com",
+    "empresaPhone": "+244 935636086",
+    "numeroRecibo": "019/2025",
+    "dataEmissao": "18-07-2025 18:23:48",
+    "vendedor": "Maria Prata",
+    "troco": "0.0 kz",
+    "telefone": 911111111,
+    "cliente": "Graciano ",
+    "desconto": "0.0 kz",
+    "total": "1720.72 kz",
+    "formaPagamento": "TPA",
+    "observacoes": "Lembre-se de seguir as orientações de uso dos medicamentos \u003cbr/\u003eEm caso de dúvida, consulte nossa equipe..",
+    "produto": [
+        {
+            "nome": "Cesartem",
+            "qtd": 1,
+            "preco": "200.0 kz"
+        },
+        {
+            "nome": "Davimeter",
+            "qtd": 1,
+            "preco": "1000.0 kz"
+        },
+        {
+            "nome": "Dipirona",
+            "qtd": 1,
+            "preco": "500.0 kz"
+        }
+    ]
+}
