@@ -5,6 +5,10 @@ import java.io.File;
 import java.util.Map;
 import java.util.List;
 import java.io.StringReader;
+import javax.print.attribute.*;
+import javax.print.*;
+import javax.print.attribute.standard.PrinterName;
+
 
 public class Gfatura {
 
@@ -67,6 +71,20 @@ public class Gfatura {
         editorPane.setEditable(false);
 
         PrinterJob job = PrinterJob.getPrinterJob();
+
+        //         // Procurar a impressora pelo nome diretamente
+        // PrintService service = PrintServiceLookup.lookupPrintServices(null, null)[0]; // apenas exemplo, mas podemos filtrar
+
+        // Forma mais elegante: filtrar por nome
+        AttributeSet attrSet = new HashPrintServiceAttributeSet(new PrinterName("PDF", null));
+        PrintService[] services = PrintServiceLookup.lookupPrintServices(null, attrSet);
+
+    if (services.length > 0) {
+        job.setPrintService(services[0]);
+    } else {
+        System.out.println("Impressora não encontrada!");
+    }
+
 
         // Criar PageFormat personalizado
         PageFormat pageFormat = job.defaultPage();

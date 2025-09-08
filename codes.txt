@@ -1,0 +1,322 @@
+import javax.swing.*;
+import java.awt.print.*;
+import java.io.*;
+import java.nio.file.*;
+import javax.print.attribute.*;
+import javax.print.*;
+import javax.print.attribute.standard.*;
+import java.awt.*;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+public class ImpressorTermico {
+    
+    public static void imprimir(Fatura fatura, boolean show){
+        try{
+            String dup = "";
+            if(!show) dup = "Duplicado";
+            else dup = "Original";
+
+            String faturaHTML = "";
+            faturaHTML += "<html><head><style>";
+            faturaHTML += "body{margin:5px; font-family: monospace;} h2{text-align:center; margin:5px;} div{font-size: 10pt; margin:2px;} b{text-align:center;} span{padding:2px; text-align:center; display:block;} table{font-size:10pt; width:100%; border-collapse:collapse;} th,td{text-align:left; padding:2px;}";
+            faturaHTML += "</style></head><body>";
+            faturaHTML += "<h2>"+ fatura.getEmpresa() +"</h2>";
+            faturaHTML += "<div><b>Nif:"+fatura.getNif()+"   Tel:."+fatura.getEmpresaPhone()+"</b></div>";
+            faturaHTML += "<div><b>Email:"+fatura.getEmail()+"   Local:."+fatura.getLocal()+"</b></div>";
+           
+            faturaHTML += "<span>"+dup+"</span>";
+            faturaHTML += "<div>Número do Recibo: " + fatura.getNumeroRecibo() + "</div>";
+            faturaHTML += "<div>Emitido em: " + fatura.getDataEmissao() + "</div>";
+            faturaHTML += "<div>--------------------------------------------------------------</div>";
+            faturaHTML += "<div>Cliente: " + fatura.getCliente() + "</div>";
+            faturaHTML += "<div>Telefone: " + fatura.getTelefone() + "</div>";
+            faturaHTML += "<div>--------------------------------------------------------------</div>";
+            faturaHTML += "<table>";
+            faturaHTML += "<tr><th>Nome</th><th>Qtd</th><th>Preço</th></tr>";
+            for(Produto p: fatura.getProduto())
+                faturaHTML += "<tr><td>"+p.getNome()+"</td><td>"+p.getQtd()+"</td><td>"+p.getPreco()+"</td></tr>";
+            faturaHTML += "</table><div>--------------------------------------------------------------</div>";
+            faturaHTML += "<div>Desconto: " + fatura.getDesconto() + "</div>";
+            faturaHTML += "<div>Troco: " + fatura.getTroco() + "</div>";
+            faturaHTML += "<div><b>Total: " + fatura.getTotal() + "</b></div>";
+            faturaHTML += "<div>--------------------------------------------------------------</div>";
+            faturaHTML += "<div>Forma de Pagamento: " + fatura.getFormaPagamento() + "</div>";
+            faturaHTML += "<div>Operador: " + fatura.getVendedor() + "</div>";
+            faturaHTML += "<div>--------------------------------------------------------------</div>";
+            faturaHTML += "<div>Observações:</div>";
+            faturaHTML += "<div>" + fatura.getObservacoes() + "</div>";
+            faturaHTML += "<div>--------------------------------------------------------------</div>";
+            faturaHTML += "<div><b>OBRIGADO PELA PREFERÊNCIA!</b></div>";
+            faturaHTML += "<div>--------------------------------------------------------------</div>";
+            faturaHTML += "</body></html>";
+
+            // Tentar diferentes abordagens baseadas no sistema operacional
+            String os = System.getProperty("os.name").toLowerCase();
+            
+            if (os.contains("linux") || os.contains("unix")) {
+                // Para Linux: tentar diferentes métodos
+                if (!imprimirLinuxCUPS(faturaHTML, fatura)) {
+                    if (!imprimirLinuxPDF(faturaHTML, fatura)) {
+                        imprimirParaArquivo(faturaHTML, fatura);
+                    }
+                }
+            } else {
+                // Para Windows/outros sistemas
+                imprimirWindows(faturaHTML);
+            }
+    
+        } catch(Exception e) {
+            System.err.println("Erro durante impressão: " + e.getMessage());
+            e.printStackTrace();
+            // Como fallback, salvar como arquivo
+            try {
+                imprimirParaArquivo(gerarHTMLFatura(fatura, show), fatura);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(null,
+                    "Erro na impressão: " + e.getMessage(), 
+                    "Erro de Impressão", 
+                    JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+    
+    // Método 1: Tentar usar CUPS no Linux com impressoras disponíveis
+    private static boolean imprimirLinuxCUPS(String html, Fatura fatura) {
+        try {
+            PrintService[] services = PrintServiceLookup.lookupPrintServices(null, null);
+            PrintService pdfService = null;
+            
+            System.out.println("=== Tentando CUPS ===");
+            for (PrintService service : services) {
+                String name = service.getName();
+                System.out.println("Verificando: " + name);
+                
+                // Procurar por impressoras que salvam em PDF
+                if (name.toLowerCase().contains("pdf") || 
+                    name.toLowerCase().contains("print-to-file") ||
+                    name.toLowerCase().contains("cups-pdf")) {
+                    pdfService = service;
+                    break;
+                }
+            }
+            
+            if (pdfService != null) {
+                System.out.println("Usando impressora: " + pdfService.getName());
+                
+                JEditorPane editorPane = new JEditorPane("text/html", html);
+                editorPane.setSize(400, 600);
+                
+                PrinterJob job = PrinterJob.getPrinterJob();
+                job.setPrintService(pdfService);
+                
+                // Configurar atributos específicos para PDF
+                PrintRequestAttributeSet attrs = new HashPrintRequestAttributeSet();
+                attrs.add(new JobName("Fatura_" + fatura.getNumeroRecibo(), null));
+                
+                job.setPrintable(editorPane.getPrintable(null, null));
+                job.print(attrs);
+                
+                System.out.println("Impressão CUPS enviada com sucesso!");
+                return true;
+            }
+            
+        } catch (Exception e) {
+            System.err.println("Erro no método CUPS: " + e.getMessage());
+        }
+        return false;
+    }
+    
+    // Método 2: Usar comando do sistema Linux para gerar PDF
+    private static boolean imprimirLinuxPDF(String html, Fatura fatura) {
+        try {
+            System.out.println("=== Tentando comando do sistema ===");
+            
+            // Criar arquivo HTML temporário
+            String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+            String htmlFile = "/tmp/fatura_" + timestamp + ".html";
+            String pdfFile = "/tmp/fatura_" + timestamp + ".pdf";
+            
+            // Escrever HTML para arquivo
+            Files.write(Paths.get(htmlFile), html.getBytes());
+            
+            // Tentar diferentes comandos para converter HTML para PDF
+            String[] commands = {
+                "wkhtmltopdf " + htmlFile + " " + pdfFile,
+                "weasyprint " + htmlFile + " " + pdfFile,
+                "pandoc " + htmlFile + " -o " + pdfFile,
+                "htmldoc --webpage -f " + pdfFile + " " + htmlFile
+            };
+            
+            for (String command : commands) {
+                try {
+                    System.out.println("Tentando comando: " + command);
+                    Process process = Runtime.getRuntime().exec(command.split(" "));
+                    int exitCode = process.waitFor();
+                    
+                    if (exitCode == 0 && Files.exists(Paths.get(pdfFile))) {
+                        System.out.println("PDF gerado com sucesso: " + pdfFile);
+                        
+                        // Mover para área de trabalho ou pasta Downloads
+                        String finalPath = moveToUserDirectory(pdfFile, "Fatura_" + fatura.getNumeroRecibo() + ".pdf");
+                        
+                        JOptionPane.showMessageDialog(null, 
+                            "Fatura salva como PDF em:\n" + finalPath, 
+                            "Impressão Concluída", 
+                            JOptionPane.INFORMATION_MESSAGE);
+                        return true;
+                    }
+                } catch (Exception e) {
+                    System.err.println("Comando falhou: " + command + " - " + e.getMessage());
+                }
+            }
+            
+        } catch (Exception e) {
+            System.err.println("Erro no método PDF do sistema: " + e.getMessage());
+        }
+        return false;
+    }
+    
+    // Método 3: Salvar como arquivo HTML/PDF na pasta do usuário
+    private static void imprimirParaArquivo(String html, Fatura fatura) throws IOException {
+        System.out.println("=== Salvando como arquivo ===");
+        
+        String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String filename = "Fatura_" + fatura.getNumeroRecibo().replace("/", "-") + "_" + timestamp + ".html";
+        
+        // Tentar salvar na área de trabalho ou home
+        String[] possiblePaths = {
+            System.getProperty("user.home") + "/Desktop/" + filename,
+            System.getProperty("user.home") + "/Área de Trabalho/" + filename,
+            System.getProperty("user.home") + "/Downloads/" + filename,
+            System.getProperty("user.home") + "/" + filename,
+            "/tmp/" + filename
+        };
+        
+        String savedPath = null;
+        for (String path : possiblePaths) {
+            try {
+                Files.write(Paths.get(path), html.getBytes());
+                savedPath = path;
+                break;
+            } catch (Exception e) {
+                // Tentar próximo caminho
+            }
+        }
+        
+        if (savedPath != null) {
+            System.out.println("Fatura salva em: " + savedPath);
+            JOptionPane.showMessageDialog(null, 
+                "Impressão não foi possível.\nFatura salva como arquivo HTML em:\n" + savedPath + 
+                "\n\nVocê pode abrir este arquivo no navegador e imprimir manualmente.", 
+                "Arquivo Salvo", 
+                JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            throw new IOException("Não foi possível salvar o arquivo em nenhum local");
+        }
+    }
+    
+    // Método para Windows (mantém o código original)
+    private static void imprimirWindows(String html) throws Exception {
+        JEditorPane editorPane = new JEditorPane("text/html", html);
+        editorPane.setSize(400, 600);
+        editorPane.setEditable(false);
+        editorPane.validate();
+        
+        PrinterJob job = PrinterJob.getPrinterJob();
+        
+        if (job.printDialog()) {
+            job.setPrintable(editorPane.getPrintable(null, null));
+            job.print();
+        }
+    }
+    
+    // Utilitário para mover arquivo para diretório do usuário
+    private static String moveToUserDirectory(String sourcePath, String filename) {
+        String[] targetDirs = {
+            System.getProperty("user.home") + "/Desktop/",
+            System.getProperty("user.home") + "/Área de Trabalho/",
+            System.getProperty("user.home") + "/Downloads/",
+            System.getProperty("user.home") + "/"
+        };
+        
+        for (String dir : targetDirs) {
+            try {
+                String targetPath = dir + filename;
+                Files.move(Paths.get(sourcePath), Paths.get(targetPath));
+                return targetPath;
+            } catch (Exception e) {
+                // Tentar próximo diretório
+            }
+        }
+        
+        return sourcePath; // Retornar caminho original se não conseguir mover
+    }
+    
+    // Método utilitário para gerar HTML
+    private static String gerarHTMLFatura(Fatura fatura, boolean show) {
+        String dup = show ? "Original" : "Duplicado";
+        String faturaHTML = "";
+        faturaHTML += "<html><head><style>";
+        faturaHTML += "body{margin:5px; font-family: monospace;} h2{text-align:center; margin:5px;} div{font-size: 10pt; margin:2px;} b{text-align:center;} span{padding:2px; text-align:center; display:block;} table{font-size:10pt; width:100%; border-collapse:collapse;} th,td{text-align:left; padding:2px;}";
+        faturaHTML += "</style></head><body>";
+        faturaHTML += "<h2>"+ fatura.getEmpresa() +"</h2>";
+        faturaHTML += "<div><b>Nif:"+fatura.getNif()+"   Tel:."+fatura.getEmpresaPhone()+"</b></div>";
+        faturaHTML += "<div><b>Email:"+fatura.getEmail()+"   Local:."+fatura.getLocal()+"</b></div>";
+        faturaHTML += "<span>"+dup+"</span>";
+        faturaHTML += "<div>Número do Recibo: " + fatura.getNumeroRecibo() + "</div>";
+        faturaHTML += "<div>Emitido em: " + fatura.getDataEmissao() + "</div>";
+        faturaHTML += "<div>--------------------------------------------------------------</div>";
+        faturaHTML += "<div>Cliente: " + fatura.getCliente() + "</div>";
+        faturaHTML += "<div>Telefone: " + fatura.getTelefone() + "</div>";
+        faturaHTML += "<div>--------------------------------------------------------------</div>";
+        faturaHTML += "<table>";
+        faturaHTML += "<tr><th>Nome</th><th>Qtd</th><th>Preço</th></tr>";
+        for(Produto p: fatura.getProduto())
+            faturaHTML += "<tr><td>"+p.getNome()+"</td><td>"+p.getQtd()+"</td><td>"+p.getPreco()+"</td></tr>";
+        faturaHTML += "</table><div>--------------------------------------------------------------</div>";
+        faturaHTML += "<div>Desconto: " + fatura.getDesconto() + "</div>";
+        faturaHTML += "<div>Troco: " + fatura.getTroco() + "</div>";
+        faturaHTML += "<div><b>Total: " + fatura.getTotal() + "</b></div>";
+        faturaHTML += "<div>--------------------------------------------------------------</div>";
+        faturaHTML += "<div>Forma de Pagamento: " + fatura.getFormaPagamento() + "</div>";
+        faturaHTML += "<div>Operador: " + fatura.getVendedor() + "</div>";
+        faturaHTML += "<div>--------------------------------------------------------------</div>";
+        faturaHTML += "<div>Observações:</div>";
+        faturaHTML += "<div>" + fatura.getObservacoes() + "</div>";
+        faturaHTML += "<div>--------------------------------------------------------------</div>";
+        faturaHTML += "<div><b>OBRIGADO PELA PREFERÊNCIA!</b></div>";
+        faturaHTML += "<div>--------------------------------------------------------------</div>";
+        faturaHTML += "</body></html>";
+        
+        return faturaHTML;
+    }
+    
+    // Método para verificar e instalar dependências necessárias no Linux
+    public static void verificarDependenciasLinux() {
+        System.out.println("=== Verificando dependências do sistema ===");
+        
+        String[] tools = {"wkhtmltopdf", "weasyprint", "pandoc", "htmldoc"};
+        
+        for (String tool : tools) {
+            try {
+                Process process = Runtime.getRuntime().exec("which " + tool);
+                int exitCode = process.waitFor();
+                
+                if (exitCode == 0) {
+                    System.out.println("✓ " + tool + " está disponível");
+                } else {
+                    System.out.println("✗ " + tool + " não encontrado");
+                }
+            } catch (Exception e) {
+                System.out.println("✗ " + tool + " - erro na verificação");
+            }
+        }
+        
+        System.out.println("\nPara instalar as dependências no Ubuntu/Debian:");
+        System.out.println("sudo apt-get install wkhtmltopdf weasyprint pandoc htmldoc");
+        
+        System.out.println("\nPara CentOS/RHEL:");
+        System.out.println("sudo yum install wkhtmltopdf python3-weasyprint pandoc htmldoc");
+    }
+}
