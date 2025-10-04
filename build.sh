@@ -1,5 +1,4 @@
 #!/bin/bash
-
 # Diretórios
 SRC_DIR=src
 BIN_DIR=bin
@@ -17,16 +16,21 @@ javac -cp "$LIB_DIR/*" -d "$BIN_DIR" "$SRC_DIR"/*.java
 
 # Verifica se a compilação foi bem-sucedida
 if [ $? -ne 0 ]; then
-  echo "❌ Erro ao compilar. Abortando."
-  exit 1
+    echo "❌ Erro ao compilar. Abortando."
+    exit 1
 fi
 
-# Copia os .jar de dependências para bin (opcional)
+# Copia os .jar de dependências para bin
+echo "Copiando dependências..."
 cp "$LIB_DIR"/*.jar "$BIN_DIR"
 
-# Cria o manifest.txt
+# Cria o manifest.txt com TODAS as dependências
 echo "Criando manifest..."
-echo -e "Main-Class: Main\nClass-Path: jackson-core-2.17.0.jar jackson-databind-2.17.0.jar jackson-annotations-2.17.0.jar" > "$MANIFEST"
+cat > "$MANIFEST" <<EOL
+Main-Class: Main
+Class-Path: jackson-core-2.17.0.jar jackson-databind-2.17.0.jar jackson-annotations-2.17.0.jar openhtmltopdf-core-1.0.10.jar openhtmltopdf-pdfbox-1.0.10.jar pdfbox-2.0.30.jar fontbox-2.0.30.jar commons-logging-1.2.jar jsoup-1.15.3.jar
+
+EOL
 
 # Cria o .jar final
 echo "Gerando $JAR_NAME..."
