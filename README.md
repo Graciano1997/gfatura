@@ -108,7 +108,7 @@ Total Geral: 175.0
 ```
 
 📜 License
-This project is for educational purposes. Feel free to use and adapt it as needed.
+This project is for educational purposes. Feel free to use and adapt it as needed.......
 
 ✨ Author
 
