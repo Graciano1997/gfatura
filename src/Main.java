@@ -26,67 +26,6 @@ import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 
 public class Main {
     
-    // Detecta o tipo de impressora e retorna o tamanho de papel apropriado
-    public static String detectPaperSize(String printerNameOrType) {
-        String name = printerNameOrType.toLowerCase();
-        
-        // Impressoras térmicas comuns
-        if (name.contains("tsp") || name.contains("tm-") || name.contains("thermal") || 
-            name.contains("80mm") || name.contains("58mm") || name.equals("thermal80") || name.equals("thermal58")) {
-            
-            if (name.contains("58")) {
-                return "58mm";
-            }
-            return "80mm";
-        }
-        
-        return "A4"; // default
-    }
- 
-    // Preprocessa o HTML adicionando CSS apropriado baseado no tipo de papel
-     private static String preprocessHTML(String html, String paperSize) {
-        if (!html.trim().toLowerCase().startsWith("<!doctype")) {
-            html = "<!DOCTYPE html>" + html;
-        }
-        
-        String injectedCSS = "";
-        
-        switch(paperSize) {
-            case "80mm":
-                injectedCSS = "<style>"
-                    + "@page { size: 80mm auto; margin: 2mm; }"
-                    + "body { width: 76mm; margin: 0 auto; font-size: 10pt; font-family: monospace; }"
-                    + "* { max-width: 76mm; word-wrap: break-word; box-sizing: border-box; }"
-                    + "</style>";
-                break;
-                
-            case "58mm":
-                injectedCSS = "<style>"
-                    + "@page { size: 58mm auto; margin: 2mm; }"
-                    + "body { width: 54mm; margin: 0 auto; font-size: 8pt; font-family: monospace; }"
-                    + "* { max-width: 54mm; word-wrap: break-word; box-sizing: border-box; }"
-                    + "</style>";
-                break;
-                
-            default: // A4
-                injectedCSS = "<style>"
-                    + "@page { size: A4; margin: 15mm; }"
-                    + "body { font-family: Arial, sans-serif; }"
-                    + "</style>";
-                break;
-        }
-        
-        if (html.toLowerCase().contains("<head>")) {
-            html = html.replaceFirst("(?i)<head>", "<head>" + injectedCSS);
-        } else if (html.toLowerCase().contains("<html>")) {
-            html = html.replaceFirst("(?i)<html>", "<html><head>" + injectedCSS + "</head>");
-        } else {
-            html = "<html><head>" + injectedCSS + "</head><body>" + html + "</body></html>";
-        }
-        
-        return html;
-    }
-
     public static PrintService getPrinter(String printerName) throws Exception {
         if (printerName == null) { printerName = ""; }
     
@@ -95,7 +34,7 @@ public class Main {
         
         if (services.length == 0) {
             Message.show("Sem Impressora","Nenhuma impressora encontrada neste computador, conecte e tente novamente",MessageType.Warning);            
-            // throw new Exception("No printer connected on this computer!");
+            throw new Exception("No printer connected on this computer!");
         }
         
         List<PrintService> physicalPrinters = new ArrayList<>();
@@ -113,10 +52,10 @@ public class Main {
                 System.out.println("Ignoring Virtual Printer: " + service.getName());
             }
         }
-        
+
         if (physicalPrinters.isEmpty()) {
-                        Message.show("Sem Impressora","Nenhuma impressora encontrada neste computador, conecte e tente novamente",MessageType.Warning);       
-            // throw new Exception("No printer connected available on this computer");
+                Message.show("Sem Impressora","Nenhuma impressora encontrada neste computador, conecte e tente novamente",MessageType.Warning);
+                throw new Exception("No printer connected available on this computer");
         }
         
 
@@ -164,12 +103,12 @@ public class Main {
             headers.add("Access-Control-Allow-Origin", "*");
 
             try {
+
                 InputStream is = exchange.getRequestBody();
                 String jsonString = new String(is.readAllBytes(), StandardCharsets.UTF_8);
                 is.close();
                 
                 System.out.println("JSON received (Size): " + jsonString.length());
-                System.out.println("First 200 chars: " + jsonString.substring(0, Math.min(200, jsonString.length())));
 
                 ObjectMapper mapper = new ObjectMapper();
                 JsonNode json = mapper.readTree(jsonString);
@@ -181,7 +120,6 @@ public class Main {
                 }
 
                 String pdfBase64 = json.get("pdfBase64").asText();
-                System.out.println(pdfBase64);
                 String printerName = json.has("printer") ? json.get("printer").asText() : "";
                 int copyNumber = json.has("copyNumber") ? json.get("copyNumber").asInt() : 1;
                 
@@ -199,6 +137,7 @@ public class Main {
                 try (FileOutputStream fos = new FileOutputStream(pdfFile)) {
                     fos.write(pdfBytes);
                 }
+
                 System.out.println("PDF salvo: " + pdfFile.getAbsolutePath());
                 
                 // Print if there is a physic printer 
@@ -207,13 +146,14 @@ public class Main {
                 if (!printer.getName().toLowerCase().contains("pdf")) {
                     PDDocument document = PDDocument.load(pdfFile);
                     PrinterJob job = PrinterJob.getPrinterJob();
-                    job.setPrintService(printer);
-                    
-                    PrintRequestAttributeSet attr = new HashPrintRequestAttributeSet();
-                    attr.add(new Copies(copyNumber));
-                    
+                    job.setPrintService(printer);                    
                     job.setPageable(new PDFPageable(document));
-                    job.print(attr);
+
+                    for(int i=0;i<copyNumber;i++ ){
+                        job.print();
+                        Thread.sleep(200);
+                    }                 
+
                     
                     document.close();
                     System.out.println("✅ Printing...!");
@@ -227,7 +167,6 @@ public class Main {
                 OutputStream os = exchange.getResponseBody();
                 os.write(responseBytes);
                 os.close();
-
             } catch (Exception e) {
                 Message.show("A impressão Falhou","Porfavor verifique se a impressora escolhida esta conectada ao computador e tente novamente",MessageType.Error);
                 e.printStackTrace();
@@ -237,93 +176,8 @@ public class Main {
                 OutputStream os = exchange.getResponseBody();
                 os.write(responseBytes);
                 os.close();
-
             }
         }
-    });
-
-    server.createContext("/print_termal", exchange -> {
-        if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) {
-        Headers headers = exchange.getResponseHeaders();
-        headers.add("Access-Control-Allow-Origin", "*");
-        headers.add("Access-Control-Allow-Methods", "POST, OPTIONS");
-        headers.add("Access-Control-Allow-Headers", "Content-Type");
-        exchange.sendResponseHeaders(204, -1);
-        return;
-    }
-    if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
-        Headers headers = exchange.getResponseHeaders();
-        headers.add("Access-Control-Allow-Origin", "*");
-
-        try {
-            InputStream is = exchange.getRequestBody();
-            String jsonString = new String(is.readAllBytes(), StandardCharsets.UTF_8);
-            is.close();
-            
-            System.out.println("JSON received (size): " + jsonString.length());
-            System.out.println("First 200 chars: " + jsonString.substring(0, Math.min(200, jsonString.length())));
-
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode json = mapper.readTree(jsonString);
-            
-            String printerName = json.has("printer") ? json.get("printer").asText() : "";
-            int copyNumber = json.has("copyNumber") ? json.get("copyNumber").asInt() : 1;
-            String invoiceHtml = json.get("invoiceHtml").asText();
-            
-            String paperSize = detectPaperSize(printerName);
-
-            invoiceHtml = preprocessHTML(invoiceHtml, paperSize);
-
-            PrintService printer = Main.getPrinter(printerName);
-            
-            PrinterJob job = PrinterJob.getPrinterJob();
-            job.setPrintService(printer);
-            
-            PrintRequestAttributeSet attr = new HashPrintRequestAttributeSet();
-            attr.add(new Copies(copyNumber));
-            
-            JEditorPane editorPane = new JEditorPane("text/html", "");
-            editorPane.setText(invoiceHtml);
-            editorPane.setSize(500, 500);
-            editorPane.setEditable(false);
-
-            // Criar PageFormat personalizado
-            PageFormat pageFormat = job.defaultPage();
-            Paper paper = pageFormat.getPaper();
-
-            // Definir margens em pontos (1 polegada = 72 pontos)
-            double margin = 20; // 0.5 polegada (meia polegada)
-            double width = paper.getWidth();
-            double height = paper.getHeight();
-
-            paper.setImageableArea(margin, margin, width - 2 * margin, height);
-            pageFormat.setPaper(paper);
-
-            // Usar o formato de página com margens definidas
-            job.setPrintable(editorPane.getPrintable(null, null), pageFormat);
-
-            // Imprimir diretamente
-            
-            job.print(attr);
-                            
-            String response = "{\"status\":\"ok\",\"message\":\"PDF impresso\",\"file\":\""  + "\"}";
-            byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
-            exchange.sendResponseHeaders(200, responseBytes.length);
-            OutputStream os = exchange.getResponseBody();
-            os.write(responseBytes);
-            os.close();
-
-        } catch (Exception e) {
-            Message.show("A impressão Falhou","Porfavor verifique se a impressora escolhida esta conectada ao computador e tente novamente",MessageType.Error);
-            e.printStackTrace();
-            String response = "{\"status\":\"error\",\"message\":\"" + e.getMessage().replace("\"", "'") + "\"}";
-            byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
-            exchange.sendResponseHeaders(500, responseBytes.length);
-            OutputStream os = exchange.getResponseBody();
-            os.write(responseBytes);
-            os.close();
-        }
-    }
     });
 
     // Endpoint para listar impressoras
@@ -365,10 +219,9 @@ public class Main {
     });
 
     server.start();
-    System.out.println("✅ Local print server running on port 5000");
-    System.out.println("📄 Use [GET] /printers to get all the system, available printers.");
-    System.out.println("🖨️ Use [POST] /print_pdf to print a pdf  item.");
-    System.out.println("🖨️ Use [POST] /print_termal to print to any thermal printer.");
+    System.out.println("Local print server running on port 5000");
+    System.out.println("Use [GET] /printers to get all the system, available printers.");
+    System.out.println("Use [POST] /print_pdf to print a pdf  item.");
     
     PrintService[] services = PrintServiceLookup.lookupPrintServices(null, null);
     System.out.println("\n*************** Detected printers ***************");

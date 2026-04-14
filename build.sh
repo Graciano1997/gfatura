@@ -39,7 +39,6 @@ jar cfm "$JAR_NAME" "../$MANIFEST" *.class
 
 # Volta ao diretório raiz
 cd ..
-
 # Concluído
 echo "✅ Compilação e empacotamento concluídos. Arquivo criado: bin/$JAR_NAME"
 echo "👉 Para executar: cd bin && java -jar $JAR_NAME"

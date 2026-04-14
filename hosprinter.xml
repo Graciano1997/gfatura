@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch4jConfig>
+  <dontWrapJar>false</dontWrapJar>
+  <headerType>console</headerType>
+  <jar>C:\Users\ghenriques\Documents\2025\HOSANNA\gfatura_\bin\gfatura.jar</jar>
+  <outfile>C:\Users\ghenriques\Documents\2025\HOSANNA\gfatura_\hosprinter.exe</outfile>
+  <errTitle></errTitle>
+  <cmdLine></cmdLine>
+  <chdir>.</chdir>
+  <priority>normal</priority>
+  <downloadUrl></downloadUrl>
+  <supportUrl></supportUrl>
+  <stayAlive>false</stayAlive>
+  <restartOnCrash>false</restartOnCrash>
+  <manifest></manifest>
+  <icon></icon>
+  <classPath>
+    <mainClass>Main</mainClass>
+    <cp>jackson-core-2.17.0.jar</cp>
+    <cp>jackson-databind-2.17.0.jar</cp>
+    <cp>jackson-annotations-2.17.0.jar</cp>
+    <cp>openhtmltopdf-core-1.0.10.jar</cp>
+    <cp>openhtmltopdf-pdfbox-1.0.10.jar</cp>
+    <cp>pdfbox-2.0.30.jar</cp>
+    <cp>fontbox-2.0.30.jar</cp>
+    <cp>commons-logging-1.2.jar</cp>
+    <cp>jsoup-1.15.3.jar</cp>
+  </classPath>
+  <jre>
+    <path>runtime</path>
+    <requiresJdk>false</requiresJdk>
+    <requires64Bit>false</requires64Bit>
+    <minVersion></minVersion>
+    <maxVersion></maxVersion>
+  </jre>
+</launch4jConfig>
